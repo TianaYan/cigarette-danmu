@@ -1,46 +1,68 @@
 /* =========================================================
-   主题：深黑 + 火星暖光
-   移动优先，禁用双击缩放与高亮
+   像素风 · 一根烟匿名弹幕
    ========================================================= */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* 像素风核心:禁用抗锯齿 + 像素级渲染 */
 html, body {
   margin: 0; padding: 0;
   background: #0a0a0a;
   color: #e6e6e6;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  font-family: "Courier New", "Consolas", "Menlo", monospace;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
 }
 
 .stage {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
-  background:
-    radial-gradient(ellipse at 50% 80%, #1a0e08 0%, #0a0a0a 55%, #000 100%);
+  background: #0a0a0a;
+  /* 像素风的星空背景 - 用小方块做 */
+  background-image:
+    radial-gradient(circle at 20% 30%, #1a1a1a 1px, transparent 1px),
+    radial-gradient(circle at 60% 70%, #1a1a1a 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, #151515 1px, transparent 1px),
+    radial-gradient(circle at 30% 80%, #151515 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, #1a1a1a 1px, transparent 1px),
+    radial-gradient(circle at 90% 90%, #1a1a1a 1px, transparent 1px),
+    radial-gradient(circle at 10% 60%, #151515 1px, transparent 1px),
+    radial-gradient(circle at 75% 40%, #151515 1px, transparent 1px);
+  background-size: 80px 80px, 100px 100px, 60px 60px, 90px 90px, 110px 110px, 70px 70px, 85px 85px, 95px 95px;
+  background-position: 0 0, 20px 30px, 40px 10px, 10px 50px, 60px 70px, 30px 20px, 50px 40px, 70px 60px;
   overflow: hidden;
+  image-rendering: pixelated;
 }
 
 /* =========================================================
-   顶部状态条
+   顶部状态条 (像素风)
    ========================================================= */
 .topbar {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; align-items: center; gap: 8px;
   padding: env(safe-area-inset-top, 12px) 16px 8px;
   padding-top: max(env(safe-area-inset-top, 12px), 12px);
-  font-size: 13px; color: #888;
+  font-size: 11px; color: #888;
   z-index: 10;
   pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
 }
-.topbar__title { color: #d0d0d0; letter-spacing: 2px; font-weight: 300; }
+.topbar__title { color: #d0d0d0; }
 .topbar__count { color: #555; }
-.topbar__hint { margin-left: auto; color: #6a6a6a; font-size: 12px; }
+.topbar__hint { margin-left: auto; color: #6a6a6a; font-size: 10px; }
 
 /* =========================================================
-   烟与火舞台
+   烟舞台
    ========================================================= */
 .cig-wrap {
   position: relative;
@@ -50,86 +72,162 @@ html, body {
 }
 .cig {
   width: 40px; height: 60vh; max-height: 540px; min-height: 320px;
-  filter: drop-shadow(0 6px 20px rgba(255, 120, 40, 0.15));
-  transition: filter 600ms ease;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  shape-rendering: crispEdges;
+  filter: drop-shadow(0 4px 0 #1a0a00);
+  transition: filter 400ms steps(4);
 }
 .cig.is-lit {
-  filter: drop-shadow(0 8px 32px rgba(255, 140, 50, 0.35));
+  filter: drop-shadow(0 4px 0 #4a1a00) drop-shadow(0 0 8px rgba(255, 140, 50, 0.4));
+}
+/* 猛吸中: 烟整体微微抖 */
+.cig.is-puff {
+  animation: cigPuff 0.12s steps(2) infinite;
+}
+@keyframes cigPuff {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(0.5px); }
 }
 
-/* 烟雾粒子层 */
-.smoke {
+/* 烟雾 canvas 容器 - 覆盖整个 cig-wrap, 跟随燃烧点 */
+.smoke-canvas {
   position: absolute;
-  left: 50%; top: 30%;
-  width: 200px; height: 300px;
-  transform: translateX(-50%);
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 800ms ease;
-}
-.smoke.is-active { opacity: 1; }
-
-.smoke__puff {
-  position: absolute;
-  bottom: 0; left: 50%;
-  width: 14px; height: 14px;
-  background: radial-gradient(circle, rgba(220,220,220,0.55) 0%, rgba(180,180,180,0.18) 50%, rgba(120,120,120,0) 75%);
-  border-radius: 50%;
-  transform: translate(-50%, 0) scale(0.4);
-  filter: blur(2px);
-  animation: smokeRise 4.2s linear forwards;
-  will-change: transform, opacity;
-}
-@keyframes smokeRise {
-  0%   { transform: translate(-50%, 0)    scale(0.4); opacity: 0; }
-  10%  { opacity: 0.7; }
-  60%  { transform: translate(-60%, -180px) scale(1.4) rotate(-10deg); opacity: 0.45; }
-  100% { transform: translate(-30%, -320px) scale(2.4) rotate(20deg); opacity: 0; }
+  z-index: 4;
+  image-rendering: pixelated;
 }
 
 /* =========================================================
-   点烟按钮（覆盖在滤嘴下方，拇指友好）
+   点烟按钮 - 移到烟的右侧, 不挡烟
    ========================================================= */
 .ignite-btn {
   position: absolute;
-  bottom: 22%; left: 50%;
-  transform: translateX(-50%);
+  top: 50%; left: calc(50% + 50px);
+  transform: translate(0, -50%);
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 22px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 999px;
+  padding: 12px 18px;
+  background: #1a1a1a;
+  border: 2px solid #444;
+  border-radius: 0;
   color: #ccc;
-  font-size: 14px; letter-spacing: 1px;
+  font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: bold;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition: transform 120ms ease, background 200ms ease, border-color 200ms ease, color 200ms ease;
+  image-rendering: pixelated;
+  box-shadow: 4px 4px 0 #000;
+  transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
 }
-.ignite-btn:active { transform: translateX(-50%) scale(0.96); }
+.ignite-btn:active {
+  transform: translate(0, -50%) translate(2px, 2px);
+  box-shadow: 2px 2px 0 #000;
+}
 .ignite-btn:disabled,
 .ignite-btn.is-cooldown {
   opacity: 0.4; pointer-events: none;
 }
 .ignite-btn__dot {
-  width: 8px; height: 8px; border-radius: 50%;
+  width: 8px; height: 8px;
   background: #ff7a1a;
-  box-shadow: 0 0 8px rgba(255,122,26,0.8);
-  animation: emberPulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #1a1a1a, 0 0 8px #ff7a1a;
+  animation: emberPulse 1.6s steps(2) infinite;
 }
 .ignite-btn.is-lit .ignite-btn__dot {
-  background: #ffcf6a; box-shadow: 0 0 10px rgba(255,180,80,0.9);
+  background: #ffcf6a;
+  box-shadow: 0 0 0 2px #1a1a1a, 0 0 10px #ffcf6a;
 }
 .ignite-btn.is-cooldown .ignite-btn__dot {
-  background: #555; box-shadow: none; animation: none;
+  background: #555;
+  box-shadow: 0 0 0 2px #1a1a1a;
+  animation: none;
+}
+/* 猛吸中: 按钮变橙红, 抖动 */
+.ignite-btn.is-puff {
+  background: #d04020;
+  border-color: #ff7a1a;
+  color: #fff;
+  animation: puffShake 0.18s steps(2) infinite;
+}
+@keyframes puffShake {
+  0%, 100% { transform: translate(0, -50%) translate(0, 0); }
+  25%      { transform: translate(0, -50%) translate(-1px, 1px); }
+  75%      { transform: translate(0, -50%) translate(1px, -1px); }
+}
+@media (max-width: 380px) {
+  .ignite-btn.is-puff { animation: puffShakeMobile 0.18s steps(2) infinite; }
+  @keyframes puffShakeMobile {
+    0%, 100% { transform: translateX(-50%) translate(0, 0); }
+    25%      { transform: translateX(-50%) translate(-1px, 1px); }
+    75%      { transform: translateX(-50%) translate(1px, -1px); }
+  }
 }
 @keyframes emberPulse {
-  0%, 100% { transform: scale(1);   opacity: 0.9; }
-  50%      { transform: scale(1.4); opacity: 0.5; }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.4); }
+}
+
+/* 小屏:按钮放到烟下方(避免被屏宽挤出去) */
+@media (max-width: 380px) {
+  .ignite-btn {
+    top: auto; bottom: 22%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 16px;
+    font-size: 10px;
+  }
+  .ignite-btn:active { transform: translateX(-50%) translate(2px, 2px); }
+  .extinguish-btn {
+    top: auto; bottom: 13%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 14px;
+    font-size: 10px;
+  }
+  .extinguish-btn:active { transform: translateX(-50%) translate(2px, 2px); }
 }
 
 /* =========================================================
-   弹幕
+   熄灭按钮 - 与点烟按钮并排, 燃烧中显示
+   ========================================================= */
+.extinguish-btn {
+  position: absolute;
+  top: 50%; left: calc(50% + 50px);
+  transform: translate(0, 50%);                /* ★ 在点烟按钮正下方 50px */
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 14px;
+  background: #1a1a1a;
+  border: 2px solid #6a3030;
+  border-radius: 0;
+  color: #d88080;
+  font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: bold;
+  cursor: pointer;
+  image-rendering: pixelated;
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
+}
+.extinguish-btn:active {
+  transform: translate(2px, calc(50% + 2px));
+  box-shadow: 1px 1px 0 #000;
+}
+.extinguish-btn:hover {
+  background: #2a1a1a;
+  border-color: #d04020;
+  color: #ff8888;
+}
+.extinguish-btn__icon {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* =========================================================
+   弹幕 (像素风)
    ========================================================= */
 .danmu-layer {
   position: absolute; inset: 0;
@@ -142,16 +240,15 @@ html, body {
   left: 100%;
   top: 0;
   white-space: nowrap;
-  font-size: 14px;
-  /* 颜色由 danmu.js 内联 style 随机指定,这里只给基础 */
-  color: #cfcfcf;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: none;
+  letter-spacing: 1px;
+  /* 像素感的字体阴影(用 1px 偏移做硬边) */
   will-change: transform, opacity;
   animation: danmuFly linear forwards;
-  letter-spacing: 0.5px;
-  pointer-events: none;
+  image-rendering: pixelated;
 }
-
 @keyframes danmuFly {
   0%   { transform: translateX(0);    opacity: 0; }
   6%   { opacity: 1; }
@@ -160,92 +257,110 @@ html, body {
 }
 
 /* =========================================================
-   底部输入栏
+   输入栏 (像素风)
    ========================================================= */
 .composer {
   position: relative;
   display: flex; align-items: center; gap: 8px;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
-  background: rgba(10,10,10,0.85);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  background: #0a0a0a;
+  border-top: 2px solid #222;
   z-index: 20;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 .composer__input {
   flex: 1 1 auto;
   height: 40px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 999px;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 0;
   color: #e6e6e6;
-  font-size: 15px;
-  padding: 0 16px;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 0 12px;
   outline: none;
-  transition: border-color 200ms ease, background 200ms ease;
+  image-rendering: pixelated;
+  transition: border-color 200ms steps(4);
 }
-.composer__input::placeholder { color: #666; }
+.composer__input::placeholder { color: #555; }
 .composer__input:focus {
-  border-color: rgba(255,170,80,0.5);
-  background: rgba(255,255,255,0.08);
+  border-color: #ff8a3c;
+  background: #222;
 }
 .composer__send {
   height: 40px; padding: 0 18px;
-  background: linear-gradient(135deg, #ff8a3c, #ff5a1f);
-  border: none; border-radius: 999px;
-  color: #fff; font-size: 14px; font-weight: 500;
+  background: #d04020;
+  border: 2px solid #ff7a1a;
+  border-radius: 0;
+  color: #fff;
+  font-size: 12px; font-weight: bold;
   letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: inherit;
   cursor: pointer;
-  transition: transform 120ms ease, opacity 200ms ease;
+  box-shadow: 3px 3px 0 #000;
+  image-rendering: pixelated;
+  transition: transform 100ms steps(2), box-shadow 100ms steps(2);
 }
-.composer__send:active { transform: scale(0.95); }
+.composer__send:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
 .composer__send:disabled { opacity: 0.4; pointer-events: none; }
 
-/* ============================================================
-   工具按钮行 (导出 / 清空)
-   ============================================================ */
+/* =========================================================
+   工具栏 (像素风)
+   ========================================================= */
 .toolbar {
   position: relative;
   display: flex; gap: 8px;
   padding: 8px 12px;
-  background: rgba(10,10,10,0.85);
-  border-top: 1px solid rgba(255,255,255,0.04);
+  background: #0a0a0a;
+  border-top: 2px solid #1a1a1a;
   z-index: 19;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 .toolbar__btn {
   flex: 1 1 0;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   padding: 10px 12px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 0;
   color: #aaa;
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: inherit;
   cursor: pointer;
-  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+  box-shadow: 3px 3px 0 #000;
+  image-rendering: pixelated;
+  transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
 }
-.toolbar__btn:active { transform: scale(0.97); }
+.toolbar__btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
 .toolbar__btn:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.16);
+  background: #222;
+  border-color: #555;
   color: #eee;
 }
-.toolbar__btn--export:hover { color: #ffcf6a; border-color: rgba(255,180,80,0.4); }
-.toolbar__btn--clear:hover { color: #ff8888; border-color: rgba(255,100,100,0.4); }
+.toolbar__btn--export:hover { color: #ffcf6a; border-color: #ff8a3c; }
+.toolbar__btn--clear:hover { color: #ff8888; border-color: #d04020; }
 .toolbar__icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px;
-  font-size: 14px;
+  width: 14px; height: 14px;
+  font-size: 12px;
   font-weight: bold;
 }
 
-/* 小屏适配 */
+/* =========================================================
+   响应式
+   ========================================================= */
 @media (max-height: 640px) {
   .cig { height: 56vh; }
-  .ignite-btn { bottom: 18%; padding: 10px 18px; font-size: 13px; }
+  .ignite-btn { bottom: 18%; padding: 10px 18px; font-size: 11px; }
 }
 @media (min-width: 768px) {
   .cig { height: 64vh; max-height: 640px; }
