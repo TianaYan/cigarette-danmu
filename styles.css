@@ -1,0 +1,253 @@
+/* =========================================================
+   主题：深黑 + 火星暖光
+   移动优先，禁用双击缩放与高亮
+   ========================================================= */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; padding: 0;
+  background: #0a0a0a;
+  color: #e6e6e6;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% 80%, #1a0e08 0%, #0a0a0a 55%, #000 100%);
+  overflow: hidden;
+}
+
+/* =========================================================
+   顶部状态条
+   ========================================================= */
+.topbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: env(safe-area-inset-top, 12px) 16px 8px;
+  padding-top: max(env(safe-area-inset-top, 12px), 12px);
+  font-size: 13px; color: #888;
+  z-index: 10;
+  pointer-events: none;
+}
+.topbar__title { color: #d0d0d0; letter-spacing: 2px; font-weight: 300; }
+.topbar__count { color: #555; }
+.topbar__hint { margin-left: auto; color: #6a6a6a; font-size: 12px; }
+
+/* =========================================================
+   烟与火舞台
+   ========================================================= */
+.cig-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 0;
+}
+.cig {
+  width: 40px; height: 60vh; max-height: 540px; min-height: 320px;
+  filter: drop-shadow(0 6px 20px rgba(255, 120, 40, 0.15));
+  transition: filter 600ms ease;
+}
+.cig.is-lit {
+  filter: drop-shadow(0 8px 32px rgba(255, 140, 50, 0.35));
+}
+
+/* 烟雾粒子层 */
+.smoke {
+  position: absolute;
+  left: 50%; top: 30%;
+  width: 200px; height: 300px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 800ms ease;
+}
+.smoke.is-active { opacity: 1; }
+
+.smoke__puff {
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 14px; height: 14px;
+  background: radial-gradient(circle, rgba(220,220,220,0.55) 0%, rgba(180,180,180,0.18) 50%, rgba(120,120,120,0) 75%);
+  border-radius: 50%;
+  transform: translate(-50%, 0) scale(0.4);
+  filter: blur(2px);
+  animation: smokeRise 4.2s linear forwards;
+  will-change: transform, opacity;
+}
+@keyframes smokeRise {
+  0%   { transform: translate(-50%, 0)    scale(0.4); opacity: 0; }
+  10%  { opacity: 0.7; }
+  60%  { transform: translate(-60%, -180px) scale(1.4) rotate(-10deg); opacity: 0.45; }
+  100% { transform: translate(-30%, -320px) scale(2.4) rotate(20deg); opacity: 0; }
+}
+
+/* =========================================================
+   点烟按钮（覆盖在滤嘴下方，拇指友好）
+   ========================================================= */
+.ignite-btn {
+  position: absolute;
+  bottom: 22%; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  color: #ccc;
+  font-size: 14px; letter-spacing: 1px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: transform 120ms ease, background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+.ignite-btn:active { transform: translateX(-50%) scale(0.96); }
+.ignite-btn:disabled,
+.ignite-btn.is-cooldown {
+  opacity: 0.4; pointer-events: none;
+}
+.ignite-btn__dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff7a1a;
+  box-shadow: 0 0 8px rgba(255,122,26,0.8);
+  animation: emberPulse 1.6s ease-in-out infinite;
+}
+.ignite-btn.is-lit .ignite-btn__dot {
+  background: #ffcf6a; box-shadow: 0 0 10px rgba(255,180,80,0.9);
+}
+.ignite-btn.is-cooldown .ignite-btn__dot {
+  background: #555; box-shadow: none; animation: none;
+}
+@keyframes emberPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.9; }
+  50%      { transform: scale(1.4); opacity: 0.5; }
+}
+
+/* =========================================================
+   弹幕
+   ========================================================= */
+.danmu-layer {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+.danmu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  white-space: nowrap;
+  font-size: 14px;
+  /* 颜色由 danmu.js 内联 style 随机指定,这里只给基础 */
+  color: #cfcfcf;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  will-change: transform, opacity;
+  animation: danmuFly linear forwards;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+@keyframes danmuFly {
+  0%   { transform: translateX(0);    opacity: 0; }
+  6%   { opacity: 1; }
+  94%  { opacity: 1; }
+  100% { transform: translateX(calc(-100vw - 100%)); opacity: 0; }
+}
+
+/* =========================================================
+   底部输入栏
+   ========================================================= */
+.composer {
+  position: relative;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  background: rgba(10,10,10,0.85);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.composer__input {
+  flex: 1 1 auto;
+  height: 40px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  color: #e6e6e6;
+  font-size: 15px;
+  padding: 0 16px;
+  outline: none;
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.composer__input::placeholder { color: #666; }
+.composer__input:focus {
+  border-color: rgba(255,170,80,0.5);
+  background: rgba(255,255,255,0.08);
+}
+.composer__send {
+  height: 40px; padding: 0 18px;
+  background: linear-gradient(135deg, #ff8a3c, #ff5a1f);
+  border: none; border-radius: 999px;
+  color: #fff; font-size: 14px; font-weight: 500;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 200ms ease;
+}
+.composer__send:active { transform: scale(0.95); }
+.composer__send:disabled { opacity: 0.4; pointer-events: none; }
+
+/* ============================================================
+   工具按钮行 (导出 / 清空)
+   ============================================================ */
+.toolbar {
+  position: relative;
+  display: flex; gap: 8px;
+  padding: 8px 12px;
+  background: rgba(10,10,10,0.85);
+  border-top: 1px solid rgba(255,255,255,0.04);
+  z-index: 19;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.toolbar__btn {
+  flex: 1 1 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+.toolbar__btn:active { transform: scale(0.97); }
+.toolbar__btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.16);
+  color: #eee;
+}
+.toolbar__btn--export:hover { color: #ffcf6a; border-color: rgba(255,180,80,0.4); }
+.toolbar__btn--clear:hover { color: #ff8888; border-color: rgba(255,100,100,0.4); }
+.toolbar__icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 小屏适配 */
+@media (max-height: 640px) {
+  .cig { height: 56vh; }
+  .ignite-btn { bottom: 18%; padding: 10px 18px; font-size: 13px; }
+}
+@media (min-width: 768px) {
+  .cig { height: 64vh; max-height: 640px; }
+  .stage { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px rgba(255,100,30,0.06); }
+}

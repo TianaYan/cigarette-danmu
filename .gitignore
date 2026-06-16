@@ -1,0 +1,13 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+.DS_Store
+
+# wrangler 自动生成的 jsonc,会污染仓库
+# wrangler.jsonc 里你的 KV id 是手填的,所以应该提交
+
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cigarette-danmu",
+  "main": "src/worker.js",
+  "compatibility_date": "2024-09-23",
+  "observability": { "enabled": true },
+
+  "kv_namespaces": [
+    { "binding": "DANMU", "id": "28459f4beb744e30bfb57a353d0db5c5" }
+  ],
+
+  "migrations": [
+    { "tag": "v2", "deleted_classes": ["DanmuHub"] }
+  ]
+}
