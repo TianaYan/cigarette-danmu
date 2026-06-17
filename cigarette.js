@@ -120,7 +120,7 @@
     if (next === 'idle') {
       els.btnLabel.textContent = '点烟';
       els.extLabel.textContent = '熄灭';
-      els.ringLabel.textContent = '吐个圈';
+      els.ringLabel.textContent = '吐个烟圈';
       els.btn.classList.remove('is-lit', 'is-cooldown', 'is-puff');
       els.svg.classList.remove('is-lit', 'is-puff');
       els.ember.setAttribute('opacity', '0');
@@ -133,7 +133,7 @@
     } else if (next === 'lighting') {
       els.btnLabel.textContent = '点烟中…';
       els.extLabel.textContent = '熄灭';
-      els.ringLabel.textContent = '吐个圈';
+      els.ringLabel.textContent = '吐个烟圈';
       els.btn.classList.add('is-lit');
       els.svg.classList.add('is-lit');
       els.spark.setAttribute('opacity', '1');
@@ -144,7 +144,7 @@
     } else if (next === 'lit') {
       els.btnLabel.textContent = '猛吸一口';
       els.extLabel.textContent = '熄灭';
-      els.ringLabel.textContent = '吐个圈';
+      els.ringLabel.textContent = '吐个烟圈';
       els.btn.classList.add('is-lit');
       els.svg.classList.add('is-lit');
       els.ember.setAttribute('opacity', '1');
@@ -157,7 +157,7 @@
     } else if (next === 'paused') {
       els.btnLabel.textContent = '点烟';
       els.extLabel.textContent = '熄灭';
-      els.ringLabel.textContent = '吐个圈';
+      els.ringLabel.textContent = '吐个烟圈';
       els.btn.classList.remove('is-lit', 'is-puff', 'is-cooldown');
       els.svg.classList.remove('is-lit', 'is-puff');
       els.ember.setAttribute('opacity', '0');
@@ -168,7 +168,7 @@
     } else if (next === 'dead') {
       els.btnLabel.textContent = '已熄灭';
       els.extLabel.textContent = '熄灭';
-      els.ringLabel.textContent = '吐个圈';
+      els.ringLabel.textContent = '吐个烟圈';
       els.btn.classList.remove('is-lit', 'is-puff');
       els.btn.classList.add('is-cooldown');
       els.svg.classList.remove('is-lit', 'is-puff');
