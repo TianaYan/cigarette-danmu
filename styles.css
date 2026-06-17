@@ -110,6 +110,8 @@ html, body {
   transform: translate(0, -50%);
   display: inline-flex; align-items: center; gap: 8px;
   padding: 12px 18px;
+  width: 110px;                       /* ★ 统一宽度 */
+  justify-content: center;
   background: #1a1a1a;
   border: 2px solid #444;
   border-radius: 0;
@@ -123,7 +125,7 @@ html, body {
   transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
 }
 .ignite-btn:active {
-  transform: translate(0, -50%) translate(2px, 2px);
+  transform: translate(0, calc(-50% - 49px)) translate(2px, 2px);
   box-shadow: 2px 2px 0 #000;
 }
 .ignite-btn:disabled,
@@ -145,17 +147,17 @@ html, body {
   box-shadow: 0 0 0 2px #1a1a1a;
   animation: none;
 }
-/* 猛吸中: 按钮变橙红, 抖动 */
+/* 猛吸中: 按钮变橙红, 用亮度闪烁代替位置抖动 (避免点击失准) */
 .ignite-btn.is-puff {
   background: #d04020;
   border-color: #ff7a1a;
   color: #fff;
-  animation: puffShake 0.18s steps(2) infinite;
+  /* 位置不变, 只改背景亮度 */
+  animation: puffFlash 0.18s steps(2) infinite;
 }
-@keyframes puffShake {
-  0%, 100% { transform: translate(0, -50%) translate(0, 0); }
-  25%      { transform: translate(0, -50%) translate(-1px, 1px); }
-  75%      { transform: translate(0, -50%) translate(1px, -1px); }
+@keyframes puffFlash {
+  0%, 100% { background: #d04020; }
+  50%      { background: #ff8a3c; }
 }
 @media (max-width: 380px) {
   .ignite-btn.is-puff { animation: puffShakeMobile 0.18s steps(2) infinite; }
@@ -170,40 +172,27 @@ html, body {
   50%      { transform: scale(1.4); }
 }
 
-/* 小屏:按钮放到烟下方(避免被屏宽挤出去) */
-@media (max-width: 380px) {
-  .ignite-btn {
-    top: auto; bottom: 22%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 16px;
-    font-size: 10px;
-  }
-  .ignite-btn:active { transform: translateX(-50%) translate(2px, 2px); }
-  .extinguish-btn {
-    top: auto; bottom: 13%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 8px 14px;
-    font-size: 10px;
-  }
-  .extinguish-btn:active { transform: translateX(-50%) translate(2px, 2px); }
-}
-
 /* =========================================================
-   熄灭按钮 - 与点烟按钮并排, 燃烧中显示
+   三个按钮: 统一宽度 110px, 竖直并列, 间距 8px
+   - 点烟按钮 (顶部): top: 50% 中心, translate(0, calc(-50% - 49px))  → 上方
+   - 熄灭按钮 (中间): 中心
+   - 吐烟圈按钮 (底部): 下方
+   每个按钮约 33px 高 + 8px 间距 + 8px 间距
+   偏移量: 中间按钮在中央, 上下两个各偏移 半个高 + 间距 = 16.5 + 8 ≈ 24.5px
    ========================================================= */
 .extinguish-btn {
   position: absolute;
   top: 50%; left: calc(50% + 50px);
-  transform: translate(0, 50%);                /* ★ 在点烟按钮正下方 50px */
+  transform: translate(0, -50%);                /* 中间按钮垂直居中 */
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 14px;
+  padding: 12px 18px;                            /* 与点烟按钮一致 */
+  width: 110px;                                  /* ★ 统一宽度 */
+  justify-content: center;
   background: #1a1a1a;
   border: 2px solid #6a3030;
   border-radius: 0;
   color: #d88080;
-  font-size: 10px; letter-spacing: 2px;
+  font-size: 11px; letter-spacing: 2px;
   text-transform: uppercase;
   font-weight: bold;
   cursor: pointer;
@@ -212,7 +201,7 @@ html, body {
   transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
 }
 .extinguish-btn:active {
-  transform: translate(2px, calc(50% + 2px));
+  transform: translate(2px, calc(-50% + 2px));
   box-shadow: 1px 1px 0 #000;
 }
 .extinguish-btn:hover {
@@ -224,6 +213,69 @@ html, body {
   font-size: 14px;
   font-weight: bold;
   line-height: 1;
+}
+
+/* 吐烟圈按钮 - 底部 */
+.ring-btn {
+  position: absolute;
+  top: 50%; left: calc(50% + 50px);
+  transform: translate(0, calc(-50% + 49px));   /* ★ 中心按钮下方 49px = 半高(16.5) + 8(间距) + 2(边框) */
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 12px 18px;
+  width: 110px;                                  /* ★ 统一宽度 */
+  justify-content: center;
+  background: #1a1a1a;
+  border: 2px solid #3a5a6a;
+  border-radius: 0;
+  color: #a0c8d8;
+  font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: bold;
+  cursor: pointer;
+  image-rendering: pixelated;
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 100ms steps(2), background 200ms steps(4), border-color 200ms steps(4), color 200ms steps(4), box-shadow 100ms steps(2);
+}
+.ring-btn:active {
+  transform: translate(2px, calc(-50% + 51px));
+  box-shadow: 1px 1px 0 #000;
+}
+.ring-btn:hover {
+  background: #1a2a2a;
+  border-color: #6ac0d8;
+  color: #c0e0e8;
+}
+.ring-btn__icon {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* 点烟按钮 (顶部) - 上移一点 */
+.ignite-btn {
+  top: 50%;
+  transform: translate(0, calc(-50% - 49px));    /* ★ 中心按钮上方 49px */
+}
+
+/* 小屏: 三个按钮都堆在烟下方 (避开屏宽) */
+@media (max-width: 380px) {
+  .ignite-btn,
+  .extinguish-btn,
+  .ring-btn {
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+  /* 竖直堆叠, 间距 8px */
+  .ignite-btn    { bottom: 26%; transform: translateX(-50%); }
+  .ignite-btn:active    { transform: translateX(-50%) translate(2px, 2px); }
+  .extinguish-btn { bottom: 18%; transform: translateX(-50%); }
+  .extinguish-btn:active { transform: translateX(-50%) translate(2px, 2px); }
+  .ring-btn      { bottom: 10%; transform: translateX(-50%); }
+  .ring-btn:active      { transform: translateX(-50%) translate(2px, 2px); }
 }
 
 /* =========================================================
@@ -360,7 +412,6 @@ html, body {
    ========================================================= */
 @media (max-height: 640px) {
   .cig { height: 56vh; }
-  .ignite-btn { bottom: 18%; padding: 10px 18px; font-size: 11px; }
 }
 @media (min-width: 768px) {
   .cig { height: 64vh; max-height: 640px; }

@@ -15,6 +15,10 @@
   const ashParticles = [];
   let ashRafId = 0;
 
+  // 烟圈 (吐烟圈) 粒子
+  const ringParticles = [];
+  let ringRafId = 0;
+
   // 烟雾 canvas
   let smokeCanvas, smokeCtx;
   const smokeParticles = [];
@@ -46,6 +50,8 @@
     els.btnLabel = document.getElementById('igniteLabel');
     els.extBtn   = document.getElementById('extinguishBtn');
     els.extLabel = document.getElementById('extinguishLabel');
+    els.ringBtn  = document.getElementById('ringBtn');
+    els.ringLabel= document.getElementById('ringLabel');
     els.wrap     = document.getElementById('cigWrap');
 
     // 烟雾 canvas 覆盖整个 cig-wrap
@@ -59,6 +65,7 @@
 
     els.btn.addEventListener('click', ignite);
     els.extBtn.addEventListener('click', extinguish);
+    els.ringBtn.addEventListener('click', blowRing);
   }
 
   function resizeSmokeCanvas() {
@@ -113,55 +120,62 @@
     if (next === 'idle') {
       els.btnLabel.textContent = '点烟';
       els.extLabel.textContent = '熄灭';
+      els.ringLabel.textContent = '吐个圈';
       els.btn.classList.remove('is-lit', 'is-cooldown', 'is-puff');
       els.svg.classList.remove('is-lit', 'is-puff');
       els.ember.setAttribute('opacity', '0');
       els.spark.setAttribute('opacity', '0');
       els.btn.hidden = false;
-      els.extBtn.hidden = true;          // ★ 未点燃: 熄灭按钮隐藏
+      els.extBtn.hidden = true;          // 未点燃, 熄灭隐藏
+      els.ringBtn.hidden = true;         // ★ 未点燃, 吐烟圈隐藏
       stopSmoke();
       clearAsh();
     } else if (next === 'lighting') {
       els.btnLabel.textContent = '点烟中…';
       els.extLabel.textContent = '熄灭';
+      els.ringLabel.textContent = '吐个圈';
       els.btn.classList.add('is-lit');
       els.svg.classList.add('is-lit');
       els.spark.setAttribute('opacity', '1');
       els.btn.hidden = false;
       els.extBtn.hidden = true;
+      els.ringBtn.hidden = true;
       setTimeout(() => els.spark.setAttribute('opacity', '0'), 600);
     } else if (next === 'lit') {
       els.btnLabel.textContent = '猛吸一口';
       els.extLabel.textContent = '熄灭';
+      els.ringLabel.textContent = '吐个圈';
       els.btn.classList.add('is-lit');
       els.svg.classList.add('is-lit');
       els.ember.setAttribute('opacity', '1');
       els.btn.hidden = false;
-      els.extBtn.hidden = false;         // ★ 燃烧中: 两按钮都显示
+      els.extBtn.hidden = false;
+      els.ringBtn.hidden = false;        // ★ 燃烧中: 三个按钮都显示
       startSmoke();
       lastTickTs = performance.now();
       rafId = requestAnimationFrame(tick);
     } else if (next === 'paused') {
-      // ★ 手动熄灭后: UI 回到 idle 状态 (点烟按钮 + 熄灭隐藏), 但 burnPercent 保留
       els.btnLabel.textContent = '点烟';
       els.extLabel.textContent = '熄灭';
+      els.ringLabel.textContent = '吐个圈';
       els.btn.classList.remove('is-lit', 'is-puff', 'is-cooldown');
       els.svg.classList.remove('is-lit', 'is-puff');
       els.ember.setAttribute('opacity', '0');
       els.btn.hidden = false;
-      els.extBtn.hidden = true;          // ★ 熄灭按钮隐藏
+      els.extBtn.hidden = true;          // 熄灭隐藏
+      els.ringBtn.hidden = true;         // ★ 吐烟圈隐藏
       stopSmoke();
-      // 不触发烟灰散落 (没烧完)
-      // 烟本体状态保留 (SVG 的 cigPaper/cigAsh 不动)
     } else if (next === 'dead') {
       els.btnLabel.textContent = '已熄灭';
       els.extLabel.textContent = '熄灭';
+      els.ringLabel.textContent = '吐个圈';
       els.btn.classList.remove('is-lit', 'is-puff');
       els.btn.classList.add('is-cooldown');
       els.svg.classList.remove('is-lit', 'is-puff');
       els.ember.setAttribute('opacity', '0');
       els.btn.hidden = false;
       els.extBtn.hidden = true;
+      els.ringBtn.hidden = true;         // ★ 死状态也隐藏
       stopSmoke();
       spawnAshBurst();
       cooldownTimer = setTimeout(() => {
@@ -294,6 +308,7 @@
     const w = smokeCanvas.width / (window.devicePixelRatio || 1);
     const h = smokeCanvas.height / (window.devicePixelRatio || 1);
 
+    // 更新 + 画烟雾粒子
     for (let i = smokeParticles.length - 1; i >= 0; i--) {
       const p = smokeParticles[i];
       p.x += p.vx;
@@ -309,8 +324,6 @@
         continue;
       }
 
-      // 像素风:画方块,不用渐变(也画一层软光做雾感)
-      // 先软光晕
       const grad = smokeCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
       grad.addColorStop(0, `rgba(210,210,210,${p.alpha})`);
       grad.addColorStop(0.4, `rgba(170,170,170,${p.alpha * 0.5})`);
@@ -319,7 +332,6 @@
       smokeCtx.beginPath();
       smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       smokeCtx.fill();
-      // 再叠几个像素方块,做像素感
       smokeCtx.fillStyle = `rgba(220,220,220,${p.alpha * 0.8})`;
       const px = Math.round(p.r / 2);
       for (let k = 0; k < 3; k++) {
@@ -328,7 +340,46 @@
         smokeCtx.fillRect(Math.round(p.x + ox - px/2), Math.round(p.y + oy - px/2), px, px);
       }
     }
+
+    // ★ 更新 + 画烟圈 (和烟雾共用一个 RAF, 不会被 clearRect 干掉)
+    updateAndDrawRings();
+
     smokeRafId = requestAnimationFrame(smokeLoop);
+  }
+
+  function updateAndDrawRings() {
+    for (let i = ringParticles.length - 1; i >= 0; i--) {
+      const p = ringParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.r += 0.45;
+      p.vy *= 0.99;
+      p.vx *= 0.99;
+      p.life -= 1;
+      const t = 1 - p.life / p.maxLife;
+      p.alpha = Math.max(0, 1 - t * 1.1);
+      p.lineWidth = Math.max(0.5, 2.5 - t * 2);
+
+      if (p.life <= 0 || p.r >= p.rMax) {
+        ringParticles.splice(i, 1);
+        continue;
+      }
+
+      // 画圆环
+      smokeCtx.globalAlpha = p.alpha * 0.85;
+      smokeCtx.strokeStyle = '#e8e8e8';
+      smokeCtx.lineWidth = p.lineWidth;
+      smokeCtx.beginPath();
+      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      smokeCtx.stroke();
+      // 内圈淡填充 (厚度感)
+      smokeCtx.globalAlpha = p.alpha * 0.15;
+      smokeCtx.fillStyle = '#ffffff';
+      smokeCtx.beginPath();
+      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      smokeCtx.fill();
+    }
+    smokeCtx.globalAlpha = 1;
   }
 
   function spawnSmokeParticle(isPuff) {
@@ -429,5 +480,81 @@
 
   function getState() { return { state, burnPercent }; }
 
-  window.Cigarette = { init, ignite, getState };
+  /* ============================================================
+     吐烟圈: 从燃烧点喷出, 圆环从小到大, 颜色从深到浅,
+     慢慢向上漂, 边漂边散开, 1-1.3 秒消失
+     ============================================================ */
+  function blowRing() {
+    if (state !== 'lit') return;
+    updateEmberScreenPos();
+    ringParticles.push({
+      x: emberScreenX,
+      y: emberScreenY - 4,
+      r: 3,                // 起始半径
+      rMax: 32,            // 最大半径
+      vx: (Math.random() - 0.5) * 0.3,  // 轻微横向漂移
+      vy: -0.8 - Math.random() * 0.4,    // 上升
+      life: 75,
+      maxLife: 75,
+    });
+    if (!ringRafId) ringRafId = requestAnimationFrame(ringLoop);
+  }
+
+  function ringLoop(ts) {
+    for (let i = ringParticles.length - 1; i >= 0; i--) {
+      const p = ringParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      // ★ 半径从小到大: 越到后面扩散越快
+      p.r += 0.45;
+      // 上升速度慢慢减弱 (空气阻力)
+      p.vy *= 0.99;
+      p.vx *= 0.99;
+      p.life -= 1;
+      const t = 1 - p.life / p.maxLife;   // 0 -> 1
+      p.alpha = Math.max(0, 1 - t * 1.1); // 1 -> 0
+      // 环宽: 起始细, 中间粗, 后面散 (fading 整个圈)
+      p.lineWidth = Math.max(0.5, 2.5 - t * 2);
+
+      if (p.life <= 0 || p.r >= p.rMax) {
+        ringParticles.splice(i, 1);
+        continue;
+      }
+    }
+
+    // 绘制: 在 canvas 上画
+    // 先清掉上一帧的烟圈 (不清烟雾, 只清烟圈区) - 但我们共用 canvas
+    // 解决: 烟圈和烟雾都在 smokeLoop/ringLoop 里画 - 但两个 RAF 独立
+    // 简化: 把烟圈画也加到 smokeLoop 里
+    drawRings();
+
+    if (ringParticles.length > 0) {
+      ringRafId = requestAnimationFrame(ringLoop);
+    } else {
+      ringRafId = 0;
+    }
+  }
+
+  // 烟圈绘制独立函数, 让 smokeLoop 也能调 (避免双 RAF)
+  function drawRings() {
+    for (const p of ringParticles) {
+      if (p.alpha <= 0) continue;
+      // 颜色: 起始深 (255,255,255), 越淡 (灰)
+      smokeCtx.globalAlpha = p.alpha * 0.85;
+      smokeCtx.strokeStyle = '#e8e8e8';
+      smokeCtx.lineWidth = p.lineWidth;
+      smokeCtx.beginPath();
+      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      smokeCtx.stroke();
+      // 内圈淡淡的雾 (让圈有"厚度"感)
+      smokeCtx.globalAlpha = p.alpha * 0.15;
+      smokeCtx.fillStyle = '#ffffff';
+      smokeCtx.beginPath();
+      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      smokeCtx.fill();
+    }
+    smokeCtx.globalAlpha = 1;
+  }
+
+  window.Cigarette = { init, ignite, getState, blowRing };
 })();
