@@ -481,76 +481,120 @@
   function getState() { return { state, burnPercent }; }
 
   /* ============================================================
-     吐烟圈: 从燃烧点喷出, 圆环从小到大, 颜色从深到浅,
-     慢慢向上漂, 边漂边散开, 1-1.3 秒消失
+     吐烟圈: 真实感烟圈
+     - 不规则形状: 32 个控制点围绕中心, 每个点带随机径向偏移
+     - 大小不均: 环的不同段粗细不同
+     - 颜色不均: 灰白相间, 不同段不同 alpha
+     - 大体是个圆
+     - 从小到大、从深到浅、向上漂散, 1.5 秒消失
      ============================================================ */
   function blowRing() {
     if (state !== 'lit') return;
     updateEmberScreenPos();
-    ringParticles.push({
+    // 32 个控制点 (360°/32 = 11.25°/点)
+    const SEGMENTS = 32;
+    const ring = {
       x: emberScreenX,
       y: emberScreenY - 4,
-      r: 3,                // 起始半径
-      rMax: 32,            // 最大半径
-      vx: (Math.random() - 0.5) * 0.3,  // 轻微横向漂移
-      vy: -0.8 - Math.random() * 0.4,    // 上升
-      life: 75,
-      maxLife: 75,
-    });
-    if (!ringRafId) ringRafId = requestAnimationFrame(ringLoop);
+      r: 4,
+      rMax: 34,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: -0.7 - Math.random() * 0.35,
+      life: 90,
+      maxLife: 90,
+      // 预生成每个段的: 角度 + 径向偏移系数 + 颜色亮度 + 粗细
+      segments: [],
+    };
+    for (let s = 0; s < SEGMENTS; s++) {
+      ring.segments.push({
+        angle: (s / SEGMENTS) * Math.PI * 2,
+        // 0.7 ~ 1.25 (控制点距离中心的倍数, 让圈不规则)
+        radial: 0.75 + Math.random() * 0.5,
+        // 0.3 ~ 1.0 段亮度 (灰白混合)
+        brightness: 0.3 + Math.random() * 0.7,
+        // 1.2 ~ 2.8 段粗细 (加粗)
+        width: 1.2 + Math.random() * 1.6,
+      });
+    }
+    ringParticles.push(ring);
   }
 
-  function ringLoop(ts) {
+  function drawRings() {
+    // 烟圈和烟雾共用 smokeLoop, 这里不重复画 (避免清屏错位)
+  }
+
+  /* 烟圈绘制 - 实际在 smokeLoop 里调用 updateAndDrawRings */
+  function updateAndDrawRings() {
     for (let i = ringParticles.length - 1; i >= 0; i--) {
       const p = ringParticles[i];
+
+      // 物理更新
       p.x += p.vx;
       p.y += p.vy;
-      // ★ 半径从小到大: 越到后面扩散越快
-      p.r += 0.45;
-      // 上升速度慢慢减弱 (空气阻力)
-      p.vy *= 0.99;
-      p.vx *= 0.99;
+      p.r += 0.42;
+      p.vy *= 0.992;
+      p.vx *= 0.992;
       p.life -= 1;
-      const t = 1 - p.life / p.maxLife;   // 0 -> 1
-      p.alpha = Math.max(0, 1 - t * 1.1); // 1 -> 0
-      // 环宽: 起始细, 中间粗, 后面散 (fading 整个圈)
-      p.lineWidth = Math.max(0.5, 2.5 - t * 2);
+
+      const t = 1 - p.life / p.maxLife;       // 0 -> 1
+      p.alpha = Math.max(0, 1 - t * 1.05);   // 1 -> 0
+      // 微微变形 (径向偏移也慢慢变, 显得更自然)
+      for (const s of p.segments) {
+        s.angle += (Math.random() - 0.5) * 0.02;  // 角度微微抖动
+      }
 
       if (p.life <= 0 || p.r >= p.rMax) {
         ringParticles.splice(i, 1);
         continue;
       }
-    }
 
-    // 绘制: 在 canvas 上画
-    // 先清掉上一帧的烟圈 (不清烟雾, 只清烟圈区) - 但我们共用 canvas
-    // 解决: 烟圈和烟雾都在 smokeLoop/ringLoop 里画 - 但两个 RAF 独立
-    // 简化: 把烟圈画也加到 smokeLoop 里
-    drawRings();
+      // 画不规则圈: 用 quadraticCurveTo 连 32 个控制点
+      const baseR = p.r;
+      const SEG = p.segments.length;
+      // 计算每个控制点位置
+      const points = p.segments.map(s => ({
+        x: p.x + Math.cos(s.angle) * baseR * s.radial,
+        y: p.y + Math.sin(s.angle) * baseR * s.radial,
+        brightness: s.brightness,
+        width: s.width,
+        angle: s.angle,
+        radial: s.radial,
+      }));
 
-    if (ringParticles.length > 0) {
-      ringRafId = requestAnimationFrame(ringLoop);
-    } else {
-      ringRafId = 0;
-    }
-  }
+      // 按"段"画: 32 段, 每段单独描边粗细 + 颜色
+      for (let s = 0; s < SEG; s++) {
+        const cur = points[s];
+        const next = points[(s + 1) % SEG];
+        // 中点 (用 midpoint, 二次曲线)
+        const midX = (cur.x + next.x) / 2;
+        const midY = (cur.y + next.y) / 2;
 
-  // 烟圈绘制独立函数, 让 smokeLoop 也能调 (避免双 RAF)
-  function drawRings() {
-    for (const p of ringParticles) {
-      if (p.alpha <= 0) continue;
-      // 颜色: 起始深 (255,255,255), 越淡 (灰)
-      smokeCtx.globalAlpha = p.alpha * 0.85;
-      smokeCtx.strokeStyle = '#e8e8e8';
-      smokeCtx.lineWidth = p.lineWidth;
-      smokeCtx.beginPath();
-      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      smokeCtx.stroke();
-      // 内圈淡淡的雾 (让圈有"厚度"感)
-      smokeCtx.globalAlpha = p.alpha * 0.15;
+        const segAlpha = p.alpha * cur.brightness;
+        if (segAlpha <= 0.02) continue;
+
+        // 段颜色: 亮段偏白, 暗段偏深灰 (加深)
+        const gr = Math.floor(120 + cur.brightness * 100);  // 120~220
+        smokeCtx.strokeStyle = `rgb(${gr},${gr},${gr})`;
+        smokeCtx.globalAlpha = segAlpha * 0.95;             // 0.85 -> 0.95 (加深透明度)
+        smokeCtx.lineWidth = cur.width * (1 - t * 0.3);     // 越后面越细 (衰减 0.4 -> 0.3, 维持粗度更久)
+        smokeCtx.lineCap = 'round';
+
+        smokeCtx.beginPath();
+        smokeCtx.moveTo(cur.x, cur.y);
+        smokeCtx.quadraticCurveTo(cur.x, cur.y, midX, midY);
+        smokeCtx.stroke();
+      }
+
+      // 内圈淡淡的雾 (让圈有"厚度"感, 整体偏深)
+      smokeCtx.globalAlpha = p.alpha * 0.14;               // 0.08 -> 0.14
       smokeCtx.fillStyle = '#ffffff';
       smokeCtx.beginPath();
-      smokeCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      // 用控制点画一个不规则多边形
+      smokeCtx.moveTo(points[0].x, points[0].y);
+      for (let s = 1; s < SEG; s++) {
+        smokeCtx.lineTo(points[s].x, points[s].y);
+      }
+      smokeCtx.closePath();
       smokeCtx.fill();
     }
     smokeCtx.globalAlpha = 1;
