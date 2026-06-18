@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
@@ -16,6 +16,57 @@
     <section class="cig-wrap" id="cigWrap" aria-label="虚拟烟">
       <!-- 烟雾 canvas (绝对定位,跟随烟头位置) -->
       <canvas id="smokeCanvas" class="smoke-canvas" aria-hidden="true"></canvas>
+
+      <!-- 打火机 (点烟时出现) -->
+      <svg class="lighter" id="lighter" viewBox="0 0 60 100" aria-hidden="true">
+        <defs>
+          <linearGradient id="lighterBody" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"  stop-color="#2a2a2a"/>
+            <stop offset="50%" stop-color="#4a4a4a"/>
+            <stop offset="100%" stop-color="#1a1a1a"/>
+          </linearGradient>
+        </defs>
+        <!-- 打火机主体 -->
+        <rect x="10" y="20" width="40" height="70" fill="url(#lighterBody)"/>
+        <!-- 打火机暗边 -->
+        <rect x="10" y="20" width="2" height="70" fill="#000"/>
+        <rect x="48" y="20" width="2" height="70" fill="#000"/>
+        <!-- 打火机顶部金属 (火口) -->
+        <rect x="8" y="10" width="44" height="12" fill="#888"/>
+        <rect x="8" y="10" width="44" height="2" fill="#bbb"/>
+        <rect x="8" y="20" width="44" height="2" fill="#444"/>
+        <!-- 火口缝隙 -->
+        <rect x="28" y="10" width="4" height="6" fill="#1a1a1a"/>
+        <!-- 按按钮 -->
+        <rect x="35" y="32" width="12" height="6" fill="#d04020"/>
+        <rect x="35" y="32" width="12" height="2" fill="#ff7a3a"/>
+        <!-- 中部品牌贴纸 -->
+        <rect x="14" y="55" width="32" height="14" fill="#8a1a1a"/>
+        <text x="30" y="65" text-anchor="middle" font-size="8" fill="#e8c8a8" font-family="monospace" font-weight="bold">FUER</text>
+        <!-- 底部暗边 -->
+        <rect x="10" y="88" width="40" height="2" fill="#000"/>
+      </svg>
+
+      <!-- 打火机火苗 (动态) -->
+      <svg class="lighter-flame" id="lighterFlame" viewBox="0 0 30 50" aria-hidden="true">
+        <defs>
+          <radialGradient id="flameCore" cx="0.5" cy="0.7" r="0.5">
+            <stop offset="0%"  stop-color="#fff2b0"/>
+            <stop offset="40%" stop-color="#ff8a2a"/>
+            <stop offset="100%" stop-color="#5a1a00" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- 外焰 (橘红) -->
+        <ellipse cx="15" cy="35" rx="10" ry="13" fill="url(#flameCore)"/>
+        <!-- 内焰 (黄白) -->
+        <ellipse cx="15" cy="32" rx="5" ry="8" fill="#fff2b0" opacity="0.8"/>
+        <!-- 焰心 (亮白) -->
+        <ellipse cx="15" cy="30" rx="2" ry="4" fill="#fff" opacity="0.9"/>
+        <!-- 火星 (小颗粒) -->
+        <rect x="8" y="20" width="2" height="2" fill="#ffd680" opacity="0.8"/>
+        <rect x="20" y="15" width="1" height="1" fill="#ffe0a0" opacity="0.7"/>
+        <rect x="12" y="10" width="1" height="1" fill="#ffb060" opacity="0.6"/>
+      </svg>
 
       <!-- 烟主体 - 像素风, 整根烟由方块拼成 -->
       <svg class="cig" id="cigSvg" viewBox="0 0 40 200" preserveAspectRatio="xMidYMax meet" shape-rendering="crispEdges" aria-hidden="true">
@@ -36,31 +87,11 @@
           火星: 贴在烟灰顶端
         -->
 
-        <!-- 滤嘴 - 棕黄方块分层 -->
-        <g id="cigFilter">
-          <rect x="14" y="167" width="12" height="4" fill="#5a3a18"/>
-          <rect x="14" y="171" width="12" height="4" fill="#8a5a28"/>
-          <rect x="14" y="175" width="12" height="4" fill="#5a3a18"/>
-          <rect x="14" y="179" width="12" height="4" fill="#8a5a28"/>
-          <rect x="14" y="183" width="12" height="4" fill="#5a3a18"/>
-          <rect x="14" y="187" width="12" height="4" fill="#8a5a28"/>
-          <rect x="14" y="191" width="12" height="4" fill="#5a3a18"/>
-          <rect x="14" y="195" width="12" height="4" fill="#3a2410"/>
-        </g>
+        <!-- 滤嘴 - 由 JS 永久绘制 (固定 168-200, 32px, 不变色) -->
+        <g id="cigFilter"></g>
 
-        <!-- 滤嘴顶金边 -->
-        <rect x="14" y="163" width="12" height="3" fill="#c79a4a"/>
-        <rect x="14" y="166" width="12" height="1" fill="#8a6a2a"/>
-
-        <!-- 烟纸 - 白底 + 暗边 (画几个高光方块) -->
-        <g id="cigPaper">
-          <rect x="14" y="20" width="12" height="143" fill="#e8e6e0"/>
-          <!-- 主体高光 1px 暗边(像素感) -->
-          <rect x="13" y="20" width="1" height="143" fill="#8a8a85"/>
-          <rect x="26" y="20" width="1" height="143" fill="#8a8a85"/>
-          <!-- 中线高光 -->
-          <rect x="18" y="20" width="1" height="143" fill="#ffffff" opacity="0.6"/>
-        </g>
+        <!-- 烟纸 - 由 JS 按 burnPercent 动态绘制 (从 yEnd 到 PAPER_BOTTOM) -->
+        <g id="cigPaper"></g>
 
         <!-- 烟灰 - 跟随燃烧下移 -->
         <g id="cigAsh">

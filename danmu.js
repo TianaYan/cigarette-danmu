@@ -17,7 +17,11 @@
   // 已知 id 集合,去重 (Supabase Realtime 可能重复推送,过滤)
   const seen = new Set();
 
-  const trackRows = [0.18, 0.32, 0.48, 0.62, 0.78, 0.88];
+  // 6 条弹幕轨道 (top 百分比), 上下错开, 避免互相重叠
+  // 顶部: 0.10 / 0.22 / 0.34
+  // 底部: 0.66 / 0.78 / 0.90
+  // 留出 0.40-0.60 范围 (烟的中部) 不放弹幕
+  const trackRows = [0.10, 0.22, 0.34, 0.66, 0.78, 0.90];
   let lastTrackIdx = -1;
 
   // Supabase client (通过 CDN 引入,不打包)
@@ -141,8 +145,42 @@
   }
 
   function pickTrack() {
-    lastTrackIdx = (lastTrackIdx + 1 + Math.floor(Math.random() * 2)) % trackRows.length;
-    return lastTrackIdx;
+    // 优先选空闲轨道: 扫描 layer 看每条轨道当前活跃弹幕数
+    const trackCounts = new Array(trackRows.length).fill(0);
+    for (const child of layer.children) {
+      const tStr = child.style.top;
+      if (!tStr || !tStr.endsWith('%')) continue;
+      const t = parseFloat(tStr) / 100;
+      // 找最接近的轨道
+      let minDiff = Infinity, idx = 0;
+      for (let i = 0; i < trackRows.length; i++) {
+        const d = Math.abs(t - trackRows[i]);
+        if (d < minDiff) { minDiff = d; idx = i; }
+      }
+      trackCounts[idx]++;
+    }
+    // 找弹幕最少的轨道 (随机一个最少, 避免总是同一条)
+    const minCount = Math.min(...trackCounts);
+    const candidates = [];
+    for (let i = 0; i < trackRows.length; i++) {
+      if (trackCounts[i] === minCount) candidates.push(i);
+    }
+    // 50% 概率选最少轨道, 50% 概率选上次相邻轨道 (避免总是选同一条)
+    let chosen;
+    if (minCount === 0) {
+      // 有空闲轨道: 随机选一个
+      chosen = candidates[Math.floor(Math.random() * candidates.length)];
+    } else {
+      // 都有弹幕: 优先选离上次的远轨道 (让弹幕错开)
+      const sorted = candidates.sort((a, b) => {
+        const da = Math.abs(a - lastTrackIdx);
+        const db = Math.abs(b - lastTrackIdx);
+        return db - da;  // 远者优先
+      });
+      chosen = sorted[0];
+    }
+    lastTrackIdx = chosen;
+    return chosen;
   }
 
   function exportSelf() {
