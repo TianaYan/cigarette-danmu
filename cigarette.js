@@ -159,10 +159,10 @@
   }
 
   // ★ 根据当前 burnPercent 计算打火机位置
-  // 起始位置: 离 wrap 底部 40% (即 y=60 从顶算), 跟着燃烧慢慢下移
-  // 0% -> y=60, 100% -> y=90 (限制最大 90%)
+  // 起始位置: 离 wrap 底部 45% (即 y=55 从顶算), 跟着燃烧慢慢下移
+  // 0% -> y=55, 100% -> y=85 (限制最大 90%)
   function getLighterPosForBurn() {
-    const baseY = 60;
+    const baseY = 55;
     const yOffset = burnPercent * 0.3;
     const yLighter = Math.min(90, baseY + yOffset);
     return {
