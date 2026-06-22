@@ -683,30 +683,39 @@
      ============================================================ */
   function blowRing() {
     if (state !== 'lit') return;
-    updateEmberScreenPos();
-    // 32 个控制点 (360°/32 = 11.25°/点)
-    const SEGMENTS = 32;
+    // ★ 烟圈从烟最下端 (滤嘴底部) 偏右发射
+    const ctm = els.svg.getScreenCTM();
+    const wrapRect = els.wrap.getBoundingClientRect();
+    if (!ctm) return;
+    // SVG (x=20, y=200) = 滤嘴底中心
+    const svgPt = els.svg.createSVGPoint();
+    svgPt.x = 20;
+    svgPt.y = 200;
+    const screenPt = svgPt.matrixTransform(ctm);
+    const baseX = screenPt.x - wrapRect.left;
+    const baseY = screenPt.y - wrapRect.top;
+    // 偏右一点 (在滤嘴中心基础上 +18px)
+    const originX = baseX + 18;
+    const originY = baseY - 2;        // 微微上移一点避免被 wrap 底裁切
+    // 48 个控制点 (更平滑的大圈)
+    const SEGMENTS = 48;
     const ring = {
-      x: emberScreenX,
-      y: emberScreenY - 4,
-      r: 4,
-      rMax: 34,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: -0.7 - Math.random() * 0.35,
-      life: 90,
-      maxLife: 90,
-      // 预生成每个段的: 角度 + 径向偏移系数 + 颜色亮度 + 粗细
+      x: originX,
+      y: originY,
+      r: 6,
+      rMax: 72,                              // ★ 圈变大
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.9 - Math.random() * 0.4,
+      life: 110,
+      maxLife: 110,
       segments: [],
     };
     for (let s = 0; s < SEGMENTS; s++) {
       ring.segments.push({
         angle: (s / SEGMENTS) * Math.PI * 2,
-        // 0.7 ~ 1.25 (控制点距离中心的倍数, 让圈不规则)
-        radial: 0.75 + Math.random() * 0.5,
-        // 0.3 ~ 1.0 段亮度 (灰白混合)
+        radial: 0.78 + Math.random() * 0.45,
         brightness: 0.3 + Math.random() * 0.7,
-        // 1.2 ~ 2.8 段粗细 (加粗)
-        width: 1.2 + Math.random() * 1.6,
+        width: 1.6 + Math.random() * 2.0,
       });
     }
     ringParticles.push(ring);
@@ -724,7 +733,7 @@
       // 物理更新
       p.x += p.vx;
       p.y += p.vy;
-      p.r += 0.42;
+      p.r += 0.65;                          // ★ 圈变大, 扩散稍快
       p.vy *= 0.992;
       p.vx *= 0.992;
       p.life -= 1;
